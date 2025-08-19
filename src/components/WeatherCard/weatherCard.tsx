@@ -95,7 +95,7 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
               <span>12:00</span>
               <span>25°C</span>
             </div>
-            {/* Add more hourly items */}
+            
           </div>
         </div>
       )}
