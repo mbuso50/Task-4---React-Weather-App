@@ -37,7 +37,7 @@ export const useWeatherApp = () => {
             setWeatherData(data);
             setCurrentLocation(location);
 
-            // Add to saved locations if not already there
+            
             if (!savedLocations.includes(location)) {
                 setSavedLocations((prev: string[]) => [...prev, location]);
             }
@@ -121,14 +121,14 @@ export const useWeatherApp = () => {
         }
     }, [currentLocation, setSavedLocations, setCurrentLocation]);
 
-    // Load weather data for current location on mount
+    
     useEffect(() => {
         if (currentLocation) {
             fetchWeatherData(currentLocation);
         }
     }, [currentLocation, fetchWeatherData]);
 
-    // Fetch forecast data when weather data changes
+   
     useEffect(() => {
         if (weatherData?.name) {
             fetchForecastData(weatherData.name);
@@ -153,4 +153,5 @@ export const useWeatherApp = () => {
         removeLocation,
         setError
     };
+
 };
