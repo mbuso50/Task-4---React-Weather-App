@@ -26,7 +26,7 @@ export const LocationList: React.FC<LocationListProps> = ({
                             className="location-btn"
                             aria-label={`View weather for ${location}`}
                         >
-                            {location}
+                            
                         </button>
                         <button
                             onClick={() => onRemove(location)}
@@ -40,4 +40,5 @@ export const LocationList: React.FC<LocationListProps> = ({
             </div>
         </div>
     );
+
 };
