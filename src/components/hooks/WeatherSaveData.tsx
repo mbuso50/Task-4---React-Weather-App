@@ -4,18 +4,24 @@ export const useSavedLocations = () => {
   const [savedLocations, setSavedLocations] = useState<string[]>([]);
 
   useEffect(() => {
-    const saved = localStorage.getItem('weatherLocations');
-    if (saved) {
-      setSavedLocations(JSON.parse(saved));
+    try {
+      const saved = localStorage.getItem('weatherLocations');
+      if (saved) {
+        setSavedLocations(JSON.parse(saved));
+      }
+    } catch (error) {
+      console.error('Error loading saved locations:', error);
+      localStorage.removeItem('weatherLocations');
     }
   }, []);
 
   const saveLocation = (location: string) => {
-    if (!savedLocations.includes(location)) {
-      const updated = [...savedLocations, location];
-      setSavedLocations(updated);
-      localStorage.setItem('weatherLocations', JSON.stringify(updated));
-    }
+    const trimmedLocation = location.trim();
+    if (!trimmedLocation || savedLocations.includes(trimmedLocation)) return;
+
+    const updated = [...savedLocations, trimmedLocation];
+    setSavedLocations(updated);
+    localStorage.setItem('weatherLocations', JSON.stringify(updated));
   };
 
   const removeLocation = (location: string) => {
