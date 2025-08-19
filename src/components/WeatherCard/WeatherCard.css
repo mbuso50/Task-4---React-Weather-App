@@ -125,7 +125,7 @@
   min-width: 80px;
 }
 
-/* Dark theme adjustments */
+
 .app.dark .weather-detail,
 .app.dark .hourly-item {
   background: #4a5568;
@@ -135,7 +135,7 @@
   border-top-color: #4a5568;
 }
 
-/* Responsive adjustments */
+
 @media (max-width: 480px) {
   .weather-details {
     grid-template-columns: 1fr;
@@ -157,4 +157,5 @@
   .weather-details {
     grid-template-columns: repeat(2, 1fr);
   }
+
 }
