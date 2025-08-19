@@ -1,70 +1,104 @@
 import React from 'react';
-import type { WeatherData, TemperatureUnit } from '../variable-types/types';
-
-interface WeatherCardProps {
-  weatherData: WeatherData;
-  unit: TemperatureUnit;
-  onToggleUnit: () => void;
-}
+import type { WeatherCardProps } from '../variable-types/types';
+import './WeatherCard.css';
 
 export const WeatherCard: React.FC<WeatherCardProps> = ({
   weatherData,
   unit,
-  onToggleUnit
+  onToggleUnit,
+  showHourly = false,
+  onToggleView
 }) => {
-  const temp = unit === 'C'
-    ? weatherData.main?.temp ?? 0
-    : ((weatherData.main?.temp ?? 0) * 9 / 5) + 32;
+  const temperature = weatherData.main?.temp ?? 'N/A';
+  const humidity = weatherData.main?.humidity ?? 'N/A';
+  const windSpeed = weatherData.wind?.speed ?? 'N/A';
+  const pressure = weatherData.main?.pressure ?? 'N/A';
+  const conditions = weatherData.weather?.[0]?.description ?? 'N/A';
+  const icon = weatherData.weather?.[0]?.icon;
+  const location = weatherData.name || 'Unknown Location';
 
-  const weatherCondition = weatherData.weather?.[0] ?? {
-    icon: '',
-    description: 'N/A'
+  const getTemperatureSymbol = () => {
+    return unit === 'metric' ? '°C' : '°F';
+  };
+
+  const getWindSpeedUnit = () => {
+    return unit === 'metric' ? 'm/s' : 'mph';
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 transition-colors duration-200">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold dark:text-white">{weatherData.name || 'Unknown Location'}</h2>
+    <div className="weather-card card">
+      <div className="weather-header">
+        <h2 className="weather-location">{location}</h2>
         <button
           onClick={onToggleUnit}
-          className="px-3 py-1 bg-blue-100 dark:bg-blue-900 rounded-md dark:text-white"
+          className="btn btn-secondary btn-small unit-toggle"
+          aria-label={`Switch to ${unit === 'metric' ? 'Fahrenheit' : 'Celsius'}`}
         >
-          °{unit}
+          {unit === 'metric' ? '°C' : '°F'}
         </button>
       </div>
 
-      <div className="mt-4 flex items-center">
-        {weatherCondition.icon && (
+      {onToggleView && (
+        <button
+          onClick={onToggleView}
+          className="btn btn-secondary btn-small view-toggle"
+        >
+          {showHourly ? 'Show Daily' : 'Show Hourly'}
+        </button>
+      )}
+
+      <div className="weather-main">
+        {icon && (
           <img
-            src={`https://openweathermap.org/img/wn/${weatherCondition.icon}@2x.png`}
-            alt={weatherCondition.description}
+            src={`https://openweathermap.org/img/wn/${icon}@2x.png`}
+            alt={conditions}
+            className="weather-icon"
           />
         )}
-        <span className="text-4xl font-bold ml-2 dark:text-white">
-          {Math.round(temp)}°{unit}
-        </span>
+        <div className="temperature">
+          {typeof temperature === 'number' ? Math.round(temperature) : temperature}
+          <span className="temperature-unit">{getTemperatureSymbol()}</span>
+        </div>
+        <p className="weather-description">{conditions}</p>
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-4">
-        <div>
-          <p className="text-gray-500 dark:text-gray-300">Humidity</p>
-          <p className="dark:text-white">{weatherData.main?.humidity ?? 'N/A'}%</p>
+      <div className="weather-details">
+        <div className="weather-detail">
+          <span className="detail-label">Humidity</span>
+          <span className="detail-value">{humidity}%</span>
         </div>
-        <div>
-          <p className="text-gray-500 dark:text-gray-300">Wind</p>
-          <p className="dark:text-white">{weatherData.wind?.speed ?? 'N/A'} m/s</p>
+        <div className="weather-detail">
+          <span className="detail-label">Wind Speed</span>
+          <span className="detail-value">
+            {typeof windSpeed === 'number' ? windSpeed.toFixed(1) : windSpeed} {getWindSpeedUnit()}
+          </span>
         </div>
-        <div>
-          <p className="text-gray-500 dark:text-gray-300">Conditions</p>
-          <p className="capitalize dark:text-white">
-            {weatherCondition.description}
-          </p>
+        <div className="weather-detail">
+          <span className="detail-label">Pressure</span>
+          <span className="detail-value">{pressure} hPa</span>
         </div>
-        <div>
-          <p className="text-gray-500 dark:text-gray-300">Pressure</p>
-          <p className="dark:text-white">{weatherData.main?.pressure ?? 'N/A'} hPa</p>
+        <div className="weather-detail">
+          <span className="detail-label">Feels Like</span>
+          <span className="detail-value">
+            {weatherData.main?.feels_like ? Math.round(weatherData.main.feels_like) : 'N/A'}
+            {getTemperatureSymbol()}
+          </span>
         </div>
       </div>
+
+      {showHourly && (
+        <div className="hourly-forecast">
+          <h3>Hourly Forecast</h3>
+          <div className="hourly-items">
+            {/* This would be populated with hourly data */}
+            <div className="hourly-item">
+              <span>12:00</span>
+              <span>25°C</span>
+            </div>
+            {/* Add more hourly items */}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

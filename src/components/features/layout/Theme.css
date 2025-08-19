@@ -1,0 +1,64 @@
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border: 2px solid #e2e8f0;
+  border-radius: 25px;
+  background: white;
+  color: #4a5568;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 500;
+}
+
+.theme-toggle:hover {
+  border-color: #667eea;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.theme-icon {
+  font-size: 1.2rem;
+}
+
+.theme-text {
+  font-size: 0.9rem;
+}
+
+/* Dark theme adjustments */
+.app.dark .theme-toggle {
+  background: #4a5568;
+  border-color: #718096;
+  color: #e2e8f0;
+}
+
+.app.dark .theme-toggle:hover {
+  border-color: #667eea;
+  background: #2d3748;
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .theme-toggle {
+    padding: 10px 16px;
+  }
+  
+  .theme-text {
+    display: none;
+  }
+  
+  .theme-icon {
+    font-size: 1.4rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .theme-toggle {
+    padding: 12px 24px;
+  }
+  
+  .theme-text {
+    display: inline;
+  }
+}

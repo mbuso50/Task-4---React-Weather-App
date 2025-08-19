@@ -1,172 +1,156 @@
-import { useState, useEffect } from 'react';
-import { fetchWeatherData, fetchForecast } from '../services/WeatherAPI';
-import { useSavedLocations } from './WeatherSaveData';
-import type { WeatherData, ForecastData, TemperatureUnit } from '../variable-types/types';
+import { useState, useEffect, useCallback } from 'react';
+import type { WeatherData, ForecastData } from '../variable-types/types';
+import { useLocalStorage } from '../LocalStorage/LocalStorage';
+
+const API_KEY = import.meta.env.VITE_API_KEY;
 
 export const useWeatherApp = () => {
-    const [location, setLocation] = useState('');
+    const [currentLocation, setCurrentLocation] = useLocalStorage('currentLocation', '');
     const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
     const [forecastData, setForecastData] = useState<ForecastData | null>(null);
-    const [unit, setUnit] = useState<TemperatureUnit>('C');
-    const [error, setError] = useState('');
-    const [loading, setLoading] = useState(true);
-    const [darkMode, setDarkMode] = useState(false);
-    const { savedLocations, saveLocation, removeLocation } = useSavedLocations();
+    const [savedLocations, setSavedLocations] = useLocalStorage<string[]>('savedLocations', []);
+    const [unit, setUnit] = useLocalStorage<'metric' | 'imperial'>('weatherUnit', 'metric');
+    const [theme, setTheme] = useLocalStorage<'light' | 'dark'>('appTheme', 'light');
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [showHourly, setShowHourly] = useState(false);
 
-    // Initial geolocation fetch - only runs once on mount
-    useEffect(() => {
-        const fetchInitialWeather = async () => {
-            if (!navigator.geolocation) {
-                setError('Geolocation is not supported by your browser');
-                setLoading(false);
-                return;
+    const fetchWeatherData = useCallback(async (location: string) => {
+        if (!API_KEY) {
+            setError('API key not configured');
+            return;
+        }
+
+        setLoading(true);
+        setError(null);
+
+        try {
+            const response = await fetch(
+                `https://api.openweathermap.org/data/2.5/weather?q=${location}&appid=${API_KEY}&units=${unit}`
+            );
+
+            if (!response.ok) {
+                throw new Error('Weather data not found');
             }
 
-            setLoading(true);
+            const data: WeatherData = await response.json();
+            setWeatherData(data);
+            setCurrentLocation(location);
+
+            // Add to saved locations if not already there
+            if (!savedLocations.includes(location)) {
+                setSavedLocations((prev: string[]) => [...prev, location]);
+            }
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to fetch weather data');
+        } finally {
+            setLoading(false);
+        }
+    }, [unit, savedLocations, setSavedLocations, setCurrentLocation]);
+
+    const fetchForecastData = useCallback(async (location: string) => {
+        if (!API_KEY) return;
+
+        try {
+            const response = await fetch(
+                `https://api.openweathermap.org/data/2.5/forecast?q=${location}&appid=${API_KEY}&units=${unit}`
+            );
+
+            if (response.ok) {
+                const data: ForecastData = await response.json();
+                setForecastData(data);
+            }
+        } catch (err) {
+            console.error('Failed to fetch forecast data:', err);
+        }
+    }, [unit]);
+
+    const getCurrentLocation = useCallback(() => {
+        if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 async (position) => {
+                    const { latitude, longitude } = position.coords;
                     try {
-                        const API_KEY = import.meta.env.VITE_API_KEY;
-                        if (!API_KEY) {
-                            throw new Error('API key not configured');
-                        }
-
-                        const { latitude, longitude } = position.coords;
                         const response = await fetch(
-                            `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&units=metric&appid=${API_KEY}`
+                            `https://api.openweathermap.org/geo/1.0/reverse?lat=${latitude}&lon=${longitude}&limit=1&appid=${API_KEY}`
                         );
 
-                        const data = await response.json();
-
-                        if (data.cod !== 200) {
-                            throw new Error(data.message || 'Failed to load weather');
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data.length > 0) {
+                                const locationName = data[0].name;
+                                fetchWeatherData(locationName);
+                            }
                         }
-
-                        const currentLocation = data.name;
-                        setWeatherData(data);
-                        setLocation(currentLocation);
-                        saveLocation(currentLocation);
-                        setError('');
                     } catch (err) {
-                        const errorMessage = err instanceof Error ? err.message : 'Failed to load local weather';
-                        setError(errorMessage);
-                        console.error('Geolocation error:', errorMessage);
-
-                        // If geolocation fails, try to load first saved location
-                        if (savedLocations.length > 0) {
-                            try {
-                                const firstLocation = savedLocations[0];
-                                const weather = await fetchWeatherData(firstLocation);
-                                setWeatherData(weather);
-                                setLocation(firstLocation);
-                                setError('');
-                            } catch (fallbackError) {
-                                console.error('Fallback location also failed:', fallbackError);
-                            }
-                        }
-                    } finally {
-                        setLoading(false);
+                        setError('Failed to get location name');
                     }
                 },
-                (err) => {
-                    const errorMessage = err.message || 'Enable location access for automatic weather';
-                    setError(errorMessage);
-                    console.error('Geolocation permission error:', errorMessage);
-
-                    // If user denies location, try to load first saved location
-                    if (savedLocations.length > 0) {
-                        const loadFirstSavedLocation = async () => {
-                            try {
-                                const firstLocation = savedLocations[0];
-                                const weather = await fetchWeatherData(firstLocation);
-                                setWeatherData(weather);
-                                setLocation(firstLocation);
-                                setError('');
-                            } catch (fallbackError) {
-                                console.error('Fallback location failed:', fallbackError);
-                            } finally {
-                                setLoading(false);
-                            }
-                        };
-                        loadFirstSavedLocation();
-                    } else {
-                        setLoading(false);
-                    }
-                },
-                {
-                    timeout: 10000, // 10 second timeout
-                    enableHighAccuracy: false
+                () => {
+                    setError('Location access denied or unavailable');
                 }
             );
-        };
+        } else {
+            setError('Geolocation is not supported by this browser');
+        }
+    }, [fetchWeatherData]);
 
-        fetchInitialWeather();
-    }, []); // Empty dependency array - runs only once on mount
+    const handleSearch = useCallback((location: string) => {
+        if (location.trim()) {
+            fetchWeatherData(location.trim());
+        }
+    }, [fetchWeatherData]);
 
-    // Dark mode handling
+    const toggleUnit = useCallback(() => {
+        setUnit((prev: 'metric' | 'imperial') => prev === 'metric' ? 'imperial' : 'metric');
+    }, [setUnit]);
+
+    const toggleTheme = useCallback(() => {
+        setTheme((prev: 'light' | 'dark') => prev === 'light' ? 'dark' : 'light');
+    }, [setTheme]);
+
+    const toggleView = useCallback(() => {
+        setShowHourly(prev => !prev);
+    }, []);
+
+    const removeLocation = useCallback((location: string) => {
+        setSavedLocations((prev: string[]) => prev.filter(loc => loc !== location));
+        if (currentLocation === location) {
+            setCurrentLocation('');
+            setWeatherData(null);
+        }
+    }, [currentLocation, setSavedLocations, setCurrentLocation]);
+
+    // Load weather data for current location on mount
     useEffect(() => {
-        document.documentElement.classList.toggle('dark', darkMode);
-    }, [darkMode]);
-
-    const handleSearch = async (e: React.FormEvent) => {
-        e.preventDefault();
-        const searchLocation = location.trim();
-        if (!searchLocation) return;
-
-        try {
-            setLoading(true);
-            const [weather, forecast] = await Promise.all([
-                fetchWeatherData(searchLocation),
-                fetchForecast(searchLocation)
-            ]);
-            setWeatherData(weather);
-            setForecastData(forecast);
-            saveLocation(searchLocation);
-            setError('');
-            setLocation('');
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'City not found. Try another location.');
-        } finally {
-            setLoading(false);
+        if (currentLocation) {
+            fetchWeatherData(currentLocation);
         }
-    };
+    }, [currentLocation, fetchWeatherData]);
 
-    // REMOVE ONE OF THESE DUPLICATE FUNCTIONS!
-    const handleLocationSelect = async (selectedLocation: string) => {
-        try {
-            setLoading(true);
-            const [weather, forecast] = await Promise.all([
-                fetchWeatherData(selectedLocation),
-                fetchForecast(selectedLocation)
-            ]);
-            setWeatherData(weather);
-            setForecastData(forecast);
-            setLocation(selectedLocation);
-            setError('');
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to load location weather');
-        } finally {
-            setLoading(false);
+    // Fetch forecast data when weather data changes
+    useEffect(() => {
+        if (weatherData?.name) {
+            fetchForecastData(weatherData.name);
         }
-    };
-
-    const toggleUnit = () => setUnit(unit === 'C' ? 'F' : 'C');
-    const toggleDarkMode = () => setDarkMode(!darkMode);
+    }, [weatherData, fetchForecastData]);
 
     return {
-        location,
-        setLocation,
+        currentLocation,
         weatherData,
         forecastData,
-        unit,
-        error,
-        loading,
-        darkMode,
         savedLocations,
+        unit,
+        theme,
+        loading,
+        error,
+        showHourly,
         handleSearch,
+        getCurrentLocation,
         toggleUnit,
-        toggleDarkMode,
+        toggleTheme,
+        toggleView,
         removeLocation,
-        handleLocationSelect
+        setError
     };
 };

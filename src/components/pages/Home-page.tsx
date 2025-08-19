@@ -1,116 +1,148 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { WeatherCard } from '../WeatherCard/weatherCard';
-import { Forecast } from '../features/Forecast/Forecast';
-import { ThemeToggle } from '../features/layout/Theme';
 import { LocationList } from '../features/LocationList/LocationList';
+import { ThemeToggle } from '../features/layout/Theme';
 import { useWeatherApp } from '../hooks/useWeatherApp';
+import '../../App.css';
+
 
 export const HomePage: React.FC = () => {
+    const [searchInput, setSearchInput] = useState('');
     const {
-        location,
-        setLocation,
         weatherData,
-        forecastData,
-        unit,
-        error,
-        loading,
-        darkMode,
         savedLocations,
+        unit,
+        theme,
+        loading,
+        error,
+        showHourly,
         handleSearch,
+        getCurrentLocation,
         toggleUnit,
-        toggleDarkMode,
+        toggleTheme,
+        toggleView,
         removeLocation,
-        handleLocationSelect
+        setError
     } = useWeatherApp();
 
-    if (loading) {
-        return (
-            <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex items-center justify-center">
-                <p className="text-gray-500 dark:text-gray-400">Loading weather data...</p>
-            </div>
-        );
-    }
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        handleSearch(searchInput);
+        setSearchInput('');
+    };
+
+    const handleUseCurrentLocation = () => {
+        setError(null);
+        getCurrentLocation();
+    };
 
     return (
-        <div className="min-h-screen bg-gray-100 dark:bg-gray-900 p-4 transition-colors duration-200 relative">
-            <ThemeToggle darkMode={darkMode} onToggle={toggleDarkMode} />
-
-            <div className="max-w-4xl mx-auto pt-16"> {/* Added pt-16 for top padding */}
-                {/* Header Section */}
-                <div className="text-center mb-8">
-                    <h1 className="text-4xl font-bold text-gray-800 dark:text-white mb-2">
-                        Weather App
-                    </h1>
-                    <p className="text-gray-600 dark:text-gray-300">
-                        Get real-time weather updates for any location
-                    </p>
-                </div>
-
-                {/* Search Form */}
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
-                    <form onSubmit={handleSearch} className="flex gap-2">
-                        <input
-                            type="text"
-                            value={location}
-                            onChange={(e) => setLocation(e.target.value)}
-                            placeholder="Enter city name..."
-                            className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                        <button
-                            type="submit"
-                            className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
-                        >
-                            Search
-                        </button>
-                    </form>
-                </div>
-
-                {/* Error Message */}
-                {error && (
-                    <div className="bg-red-100 dark:bg-red-900 border border-red-300 dark:border-red-700 p-4 rounded-lg mb-6 text-red-800 dark:text-red-200">
-                        ⚠️ {error}
+        <div className={`app ${theme}`}>
+            <div className="container">
+                <header className="header">
+                    <div className="header-content">
+                        <div className="header-text">
+                            <h1 className="header-title">Weather App</h1>
+                            <p className="header-subtitle">Get real-time weather updates</p>
+                        </div>
+                        <ThemeToggle currentTheme={theme} onToggle={toggleTheme} />
                     </div>
-                )}
+                </header>
 
-                {/* Weather Content */}
-                {weatherData ? (
-                    <div className="space-y-6">
-                        {/* Current Weather */}
-                        <WeatherCard
-                            weatherData={weatherData}
-                            unit={unit}
-                            onToggleUnit={toggleUnit}
-                        />
+                <main className="main-content">
+                    {/* Search Section */}
+                    <section className="search-section card">
+                        <div className="card-header">
+                            <h2 className="card-title">Search Location</h2>
+                            <p className="card-subtitle">Enter a city name to get weather information</p>
+                        </div>
 
-                        {/* Forecast */}
-                        {forecastData && (
-                            <Forecast forecastData={forecastData} unit={unit} />
-                        )}
-
-                        {/* Saved Locations */}
-                        {savedLocations.length > 0 && (
-                            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-                                <h2 className="text-2xl font-semibold mb-4 text-gray-800 dark:text-white">
-                                    📍 Saved Locations
-                                </h2>
-                                <LocationList
-                                    locations={savedLocations}
-                                    onSelect={handleLocationSelect}
-                                    onRemove={removeLocation}
+                        <form onSubmit={handleSubmit} className="search-form">
+                            <div className="form-group">
+                                <input
+                                    type="text"
+                                    value={searchInput}
+                                    onChange={(e) => setSearchInput(e.target.value)}
+                                    placeholder="Enter city name..."
+                                    className="form-input"
+                                    aria-label="City name"
                                 />
                             </div>
+
+                            <div className="form-actions">
+                                <button type="submit" className="btn btn-primary" disabled={loading}>
+                                    {loading ? 'Searching...' : 'Search'}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleUseCurrentLocation}
+                                    className="btn btn-secondary"
+                                    disabled={loading}
+                                >
+                                    Use Current Location
+                                </button>
+                            </div>
+                        </form>
+
+                        {error && (
+                            <div className="error-message" role="alert">
+                                {error}
+                            </div>
                         )}
-                    </div>
-                ) : !error && (
-                    <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-lg shadow-md">
-                        <div className="text-6xl mb-4">🌤️</div>
-                        <p className="text-gray-500 dark:text-gray-400 text-lg">
-                            {navigator.geolocation
-                                ? "Detecting your location..."
-                                : "Search for a city to get started"}
-                        </p>
-                    </div>
-                )}
+                    </section>
+
+                    {/* Weather Display Section */}
+                    {weatherData && (
+                        <section className="weather-section">
+                            <WeatherCard
+                                weatherData={weatherData}
+                                unit={unit}
+                                onToggleUnit={toggleUnit}
+                                showHourly={showHourly}
+                                onToggleView={toggleView}
+                            />
+                        </section>
+                    )}
+
+                    {/* Saved Locations Section */}
+                    {savedLocations.length > 0 && (
+                        <section className="locations-section card">
+                            <div className="card-header">
+                                <h2 className="card-title">Saved Locations</h2>
+                                <p className="card-subtitle">Click on a location to view its weather</p>
+                            </div>
+
+                            <LocationList
+                                locations={savedLocations}
+                                onSelect={handleSearch}
+                                onRemove={removeLocation}
+                            />
+                        </section>
+                    )}
+
+                    {/* Loading State */}
+                    {loading && (
+                        <div className="loading">
+                            <div className="spinner"></div>
+                            <span>Loading weather data...</span>
+                        </div>
+                    )}
+
+                    {/* Empty State */}
+                    {!weatherData && !loading && savedLocations.length === 0 && (
+                        <section className="empty-state card">
+                            <div className="empty-content">
+                                <div className="empty-icon">🌤️</div>
+                                <h2>Welcome to Weather App</h2>
+                                <p>Search for a location or use your current location to get started</p>
+                            </div>
+                        </section>
+                    )}
+                </main>
+
+                <footer className="footer">
+                    <p>&copy; 2025 Mbuso Muludzi.</p>
+                </footer>
             </div>
         </div>
     );

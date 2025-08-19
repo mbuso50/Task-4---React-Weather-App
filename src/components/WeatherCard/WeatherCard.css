@@ -1,0 +1,160 @@
+.weather-card {
+  position: relative;
+  min-width: 300px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.weather-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+}
+
+.weather-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.weather-location {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: inherit;
+  margin: 0;
+  flex: 1;
+}
+
+.unit-toggle {
+  flex-shrink: 0;
+  margin-left: 12px;
+}
+
+.view-toggle {
+  margin-bottom: 16px;
+  width: 100%;
+}
+
+.weather-main {
+  text-align: center;
+  margin: 24px 0;
+}
+
+.weather-icon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 12px;
+}
+
+.temperature {
+  font-size: 3rem;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 8px;
+  color: inherit;
+}
+
+.temperature-unit {
+  font-size: 1.5rem;
+  font-weight: 400;
+  vertical-align: super;
+}
+
+.weather-description {
+  font-size: 1.1rem;
+  color: #718096;
+  text-transform: capitalize;
+  margin: 0;
+}
+
+.weather-details {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.weather-detail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px;
+  background: #f7fafc;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.detail-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #718096;
+  margin-bottom: 4px;
+}
+
+.detail-value {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: inherit;
+}
+
+.hourly-forecast {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 2px solid #e2e8f0;
+}
+
+.hourly-forecast h3 {
+  font-size: 1.25rem;
+  margin-bottom: 16px;
+  color: inherit;
+}
+
+.hourly-items {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+.hourly-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px;
+  background: #f7fafc;
+  border-radius: 8px;
+  min-width: 80px;
+}
+
+/* Dark theme adjustments */
+.app.dark .weather-detail,
+.app.dark .hourly-item {
+  background: #4a5568;
+}
+
+.app.dark .hourly-forecast {
+  border-top-color: #4a5568;
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .weather-details {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .temperature {
+    font-size: 2.5rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .weather-details {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .weather-details {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

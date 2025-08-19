@@ -1,19 +1,27 @@
 import React from 'react';
+import './Theme.css';
 
 interface ThemeToggleProps {
-    darkMode: boolean;
+    currentTheme: 'light' | 'dark';
     onToggle: () => void;
 }
 
-export const ThemeToggle: React.FC<ThemeToggleProps> = ({ darkMode, onToggle }) => {
+export const ThemeToggle: React.FC<ThemeToggleProps> = ({
+    currentTheme,
+    onToggle
+}) => {
     return (
-        <div className="fixed top-4 right-4 z-50">
-            <button
-                onClick={onToggle}
-                className="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-md text-gray-800 dark:text-white shadow-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors duration-200"
-            >
-                {darkMode ? '☀️ Light Mode' : '🌙 Dark Mode'}
-            </button>
-        </div>
+        <button
+            onClick={onToggle}
+            className={`theme-toggle ${currentTheme}`}
+            aria-label={`Switch to ${currentTheme === 'light' ? 'dark' : 'light'} theme`}
+        >
+            <span className="theme-icon">
+                {currentTheme === 'light' ? '🌙' : '☀️'}
+            </span>
+            <span className="theme-text">
+                {currentTheme === 'light' ? 'Dark Mode' : 'Light Mode'}
+            </span>
+        </button>
     );
 };
