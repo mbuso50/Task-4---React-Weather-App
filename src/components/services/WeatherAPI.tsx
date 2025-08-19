@@ -1,8 +1,18 @@
 import type { WeatherData, ForecastData } from '../variable-types/types';
 
+const getApiKey = () => {
+
+  const envKey = import.meta.env.VITE_API_KEY;
+  if (envKey) return envKey;
+
+
+  return '8d57d21c9bfeb49733adf610baf374cb';
+};
+
+const API_KEY = getApiKey();
+
 export const fetchWeatherData = async (location: string): Promise<WeatherData> => {
   try {
-    const API_KEY = import.meta.env.VITE_API_KEY;
     if (!API_KEY) {
       throw new Error('OpenWeatherMap API key not configured');
     }
@@ -23,6 +33,8 @@ export const fetchWeatherData = async (location: string): Promise<WeatherData> =
     throw error;
   }
 };
+
+
 
 export const fetchForecast = async (location: string): Promise<ForecastData> => {
   try {
