@@ -91,7 +91,7 @@ export const HomePage: React.FC = () => {
                         )}
                     </section>
 
-                    {/* Weather Display Section */}
+                    
                     {weatherData && (
                         <section className="weather-section">
                             <WeatherCard
@@ -104,7 +104,7 @@ export const HomePage: React.FC = () => {
                         </section>
                     )}
 
-                    {/* Saved Locations Section */}
+                   
                     {savedLocations.length > 0 && (
                         <section className="locations-section card">
                             <div className="card-header">
@@ -120,7 +120,7 @@ export const HomePage: React.FC = () => {
                         </section>
                     )}
 
-                    {/* Loading State */}
+                   
                     {loading && (
                         <div className="loading">
                             <div className="spinner"></div>
@@ -128,7 +128,7 @@ export const HomePage: React.FC = () => {
                         </div>
                     )}
 
-                    {/* Empty State */}
+                    
                     {!weatherData && !loading && savedLocations.length === 0 && (
                         <section className="empty-state card">
                             <div className="empty-content">
@@ -146,4 +146,5 @@ export const HomePage: React.FC = () => {
             </div>
         </div>
     );
+
 };
