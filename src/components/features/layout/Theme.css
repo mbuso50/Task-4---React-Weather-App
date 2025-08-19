@@ -26,7 +26,7 @@
   font-size: 0.9rem;
 }
 
-/* Dark theme adjustments */
+
 .app.dark .theme-toggle {
   background: #4a5568;
   border-color: #718096;
@@ -38,7 +38,7 @@
   background: #2d3748;
 }
 
-/* Responsive adjustments */
+
 @media (max-width: 480px) {
   .theme-toggle {
     padding: 10px 16px;
@@ -61,4 +61,5 @@
   .theme-text {
     display: inline;
   }
+
 }
