@@ -1,43 +1,56 @@
+// src/components/features/LocationList/LocationList.tsx
 import React from 'react';
-import type { LocationListProps } from '../../variable-types/types';
-import './LocationList.css';
+import '../../../App.css';
+import type { WeatherLocation } from '../../variable-types/types';
 
-export const LocationList: React.FC<LocationListProps> = ({
+interface LocationListProps {
+    locations: WeatherLocation[];
+    onRemoveLocation: (id: string) => void;
+    onSwitchLocation: (location: WeatherLocation) => void;
+    currentLocation: WeatherLocation | null;
+}
+
+const LocationList: React.FC<LocationListProps> = ({
     locations,
-    onSelect,
-    onRemove
+    onRemoveLocation,
+    onSwitchLocation,
+    currentLocation,
 }) => {
-    if (locations.length === 0) {
-        return (
-            <div className="location-list-empty">
-                <p>No locations saved yet. Search for a location to add it here.</p>
-            </div>
-        );
-    }
-
     return (
         <div className="location-list">
-            <h3 className="location-list-title">Saved Locations</h3>
-            <div className="location-items">
-                {locations.map((location) => (
-                    <div key={location} className="location-item">
-                        <button
-                            onClick={() => onSelect(location)}
-                            className="location-btn"
-                            aria-label={`View weather for ${location}`}
-                        >
-                            {location}
-                        </button>
-                        <button
-                            onClick={() => onRemove(location)}
-                            className="btn btn-danger btn-small location-remove"
-                            aria-label={`Remove ${location}`}
-                        >
-                            ×
-                        </button>
-                    </div>
-                ))}
-            </div>
+            <h3>Saved Locations</h3>
+            {locations.length === 0 ? (
+                <p>No locations saved yet.</p>
+            ) : (
+                <ul className="location-items">
+                    {locations.map((location) => (
+                        <li key={location.id} className="location-item">
+                            <span>
+                                {location.name}
+                                {location.state && `, ${location.state}`}
+                                {location.country && `, ${location.country}`}
+                            </span>
+                            <div className="location-actions">
+                                <button
+                                    onClick={() => onSwitchLocation(location)}
+                                    disabled={currentLocation?.id === location.id}
+                                    className="location-btn"
+                                >
+                                    {currentLocation?.id === location.id ? 'Current' : 'Switch'}
+                                </button>
+                                <button
+                                    onClick={() => onRemoveLocation(location.id)}
+                                    className="location-remove"
+                                >
+                                    Remove
+                                </button>
+                            </div>
+                        </li>
+                    ))}
+                </ul>
+            )}
         </div>
     );
 };
+
+export default LocationList;

@@ -1,47 +1,87 @@
-import React from 'react';
-import type { ForecastData, TemperatureUnit } from '../../variable-types/types';
 
-interface ForecastProps {
-  forecastData: ForecastData;
-  unit: TemperatureUnit;
+import React from 'react';
+
+interface ForecastItem {
+  dt: number;
+  temp: number;
+  weather: {
+    main: string;
+    description: string;
+    icon: string;
+  };
 }
 
-export const Forecast: React.FC<ForecastProps> = ({ forecastData, unit }) => {
-  const dailyForecast = forecastData.list?.reduce((acc: any, item: any) => {
-    const date = item.dt_txt?.split(' ')[0];
-    if (!date) return acc;
+interface ForecastProps {
+  hourly: ForecastItem[];
+  daily: ForecastItem[];
+  unit: 'metric' | 'imperial';
+}
 
-    if (!acc[date]) {
-      acc[date] = [];
-    }
-    acc[date].push(item);
-    return acc;
-  }, {}) || {};
+const Forecast: React.FC<ForecastProps> = ({ hourly, daily, unit }) => {
+  const temperatureUnit = unit === 'metric' ? '°C' : '°F';
+
+  const formatTime = (timestamp: number) => {
+    return new Date(timestamp * 1000).toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  const formatDate = (timestamp: number) => {
+    return new Date(timestamp * 1000).toLocaleDateString([], {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+    });
+  };
+
+  // Don't render if both arrays are empty
+  if (hourly.length === 0 && daily.length === 0) {
+    return null;
+  }
 
   return (
-    <div className="mt-6">
-      <h2 className="text-xl font-semibold mb-4">5-Day Forecast</h2>
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        {Object.entries(dailyForecast).map(([date, items]: [string, any]) => {
-          const dayTemp = items[0]?.main?.temp ?? 0;
-          const displayTemp = unit === 'C'
-            ? Math.round(dayTemp)
-            : Math.round((dayTemp * 9 / 5) + 32);
+    <div className="forecast-container">
+      {hourly.length > 0 && (
+        <div className="hourly-forecast card">
+          <div className="card-header">
+            <h3 className="card-title">Hourly Forecast</h3>
+          </div>
+          <div className="forecast-scroll">
+            {hourly.slice(0, 24).map((item, index) => (
+              <div key={index} className="forecast-item">
+                <p>{formatTime(item.dt)}</p>
+                <img
+                  src={`https://openweathermap.org/img/wn/${item.weather.icon}.png`}
+                  alt={item.weather.description}
+                />
+                <p>{Math.round(item.temp)}{temperatureUnit}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
-          return (
-            <div key={date} className="bg-white p-3 rounded shadow">
-              <p className="font-medium">{new Date(date).toLocaleDateString('en-US', { weekday: 'short' })}</p>
+      {daily.length > 0 && (
+        <div className="daily-forecast card">
+          <div className="card-header">
+            <h3 className="card-title">Daily Forecast</h3>
+          </div>
+          {daily.slice(0, 7).map((item, index) => (
+            <div key={index} className="forecast-item">
+              <p>{formatDate(item.dt)}</p>
               <img
-                src={`https://openweathermap.org/img/wn/${items[0]?.weather?.[0]?.icon}.png`}
-                alt={items[0]?.weather?.[0]?.description || 'Weather icon'}
+                src={`https://openweathermap.org/img/wn/${item.weather.icon}.png`}
+                alt={item.weather.description}
               />
-              <p>
-                {displayTemp}°{unit}
-              </p>
+              <p>{Math.round(item.temp)}{temperatureUnit}</p>
+              <p>{item.weather.main}</p>
             </div>
-          );
-        })}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
+
+export default Forecast;

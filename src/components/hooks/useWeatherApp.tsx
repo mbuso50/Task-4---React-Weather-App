@@ -1,156 +1,283 @@
-import { useState, useEffect, useCallback } from 'react';
-import type { WeatherData, ForecastData } from '../variable-types/types';
-import { useLocalStorage } from '../LocalStorage/LocalStorage';
-
-const API_KEY = import.meta.env.VITE_API_KEY;
+// src/components/hooks/useWeatherApp.tsx
+import { useState, useEffect } from 'react';
+import type { WeatherLocation, WeatherData, AppSettings } from '../variable-types/types';
+import { getCurrentWeather, getForecast, searchLocation } from '../services/WeatherAPI';
 
 export const useWeatherApp = () => {
-    const [currentLocation, setCurrentLocation] = useLocalStorage('currentLocation', '');
+    const [currentLocation, setCurrentLocation] = useState<WeatherLocation | null>(null);
+    const [savedLocations, setSavedLocations] = useState<WeatherLocation[]>([]);
     const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
-    const [forecastData, setForecastData] = useState<ForecastData | null>(null);
-    const [savedLocations, setSavedLocations] = useLocalStorage<string[]>('savedLocations', []);
-    const [unit, setUnit] = useLocalStorage<'metric' | 'imperial'>('weatherUnit', 'metric');
-    const [theme, setTheme] = useLocalStorage<'light' | 'dark'>('appTheme', 'light');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [showHourly, setShowHourly] = useState(false);
+    const [settings, setSettings] = useState<AppSettings>({
+        unit: 'metric',
+        theme: 'light',
+        notifications: false,
+    });
+    const [weatherAlerts, setWeatherAlerts] = useState<string[]>([]);
 
-    const fetchWeatherData = useCallback(async (location: string) => {
-        if (!API_KEY) {
-            setError('API key not configured');
-            return;
-        }
-
-        setLoading(true);
-        setError(null);
-
+    useEffect(() => {
         try {
-            const response = await fetch(
-                `https://api.openweathermap.org/data/2.5/weather?q=${location}&appid=${API_KEY}&units=${unit}`
-            );
-
-            if (!response.ok) {
-                throw new Error('Weather data not found');
+            const saved = localStorage.getItem('savedLocations');
+            if (saved) {
+                setSavedLocations(JSON.parse(saved));
             }
 
-            const data: WeatherData = await response.json();
-            setWeatherData(data);
-            setCurrentLocation(location);
-
-            // Add to saved locations if not already there
-            if (!savedLocations.includes(location)) {
-                setSavedLocations((prev: string[]) => [...prev, location]);
+            const savedSettings = localStorage.getItem('weatherAppSettings');
+            if (savedSettings) {
+                setSettings(JSON.parse(savedSettings));
             }
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to fetch weather data');
-        } finally {
-            setLoading(false);
+            console.error('Error loading from localStorage:', err);
         }
-    }, [unit, savedLocations, setSavedLocations, setCurrentLocation]);
+    }, []);
 
-    const fetchForecastData = useCallback(async (location: string) => {
-        if (!API_KEY) return;
-
+    useEffect(() => {
         try {
-            const response = await fetch(
-                `https://api.openweathermap.org/data/2.5/forecast?q=${location}&appid=${API_KEY}&units=${unit}`
-            );
-
-            if (response.ok) {
-                const data: ForecastData = await response.json();
-                setForecastData(data);
-            }
+            localStorage.setItem('savedLocations', JSON.stringify(savedLocations));
         } catch (err) {
-            console.error('Failed to fetch forecast data:', err);
+            console.error('Error saving to localStorage:', err);
         }
-    }, [unit]);
+    }, [savedLocations]);
 
-    const getCurrentLocation = useCallback(() => {
+    useEffect(() => {
+        try {
+            localStorage.setItem('weatherAppSettings', JSON.stringify(settings));
+        } catch (err) {
+            console.error('Error saving to localStorage:', err);
+        }
+    }, [settings]);
+
+    useEffect(() => {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
-                async (position) => {
+                (position) => {
                     const { latitude, longitude } = position.coords;
-                    try {
-                        const response = await fetch(
-                            `https://api.openweathermap.org/geo/1.0/reverse?lat=${latitude}&lon=${longitude}&limit=1&appid=${API_KEY}`
-                        );
-
-                        if (response.ok) {
-                            const data = await response.json();
-                            if (data.length > 0) {
-                                const locationName = data[0].name;
-                                fetchWeatherData(locationName);
-                            }
-                        }
-                    } catch (err) {
-                        setError('Failed to get location name');
-                    }
+                    setCurrentLocation({
+                        id: 'current',
+                        name: 'Current Location',
+                        lat: latitude,
+                        lon: longitude,
+                        country: '',
+                    });
                 },
-                () => {
-                    setError('Location access denied or unavailable');
+                (err) => {
+                    console.warn('Location access denied or error:', err);
+                    setError('Location access denied. Please search for a location.');
                 }
             );
         } else {
-            setError('Geolocation is not supported by this browser');
+            setError('Geolocation is not supported by this browser.');
         }
-    }, [fetchWeatherData]);
-
-    const handleSearch = useCallback((location: string) => {
-        if (location.trim()) {
-            fetchWeatherData(location.trim());
-        }
-    }, [fetchWeatherData]);
-
-    const toggleUnit = useCallback(() => {
-        setUnit((prev: 'metric' | 'imperial') => prev === 'metric' ? 'imperial' : 'metric');
-    }, [setUnit]);
-
-    const toggleTheme = useCallback(() => {
-        setTheme((prev: 'light' | 'dark') => prev === 'light' ? 'dark' : 'light');
-    }, [setTheme]);
-
-    const toggleView = useCallback(() => {
-        setShowHourly(prev => !prev);
     }, []);
 
-    const removeLocation = useCallback((location: string) => {
-        setSavedLocations((prev: string[]) => prev.filter(loc => loc !== location));
-        if (currentLocation === location) {
-            setCurrentLocation('');
-            setWeatherData(null);
-        }
-    }, [currentLocation, setSavedLocations, setCurrentLocation]);
-
-    // Load weather data for current location on mount
     useEffect(() => {
         if (currentLocation) {
             fetchWeatherData(currentLocation);
         }
-    }, [currentLocation, fetchWeatherData]);
+    }, [currentLocation, settings.unit]);
 
-    // Fetch forecast data when weather data changes
     useEffect(() => {
-        if (weatherData?.name) {
-            fetchForecastData(weatherData.name);
+        if (weatherData && settings.notifications) {
+            const alerts: string[] = [];
+
+            if (weatherData.current.wind_speed > 20) {
+                alerts.push('High wind warning');
+            }
+
+            if (weatherData.current.weather.main === 'Thunderstorm') {
+                alerts.push('Thunderstorm warning');
+            }
+
+            if (weatherData.current.temp > 35 || weatherData.current.temp < 0) {
+                alerts.push('Extreme temperature warning');
+            }
+
+            if (weatherData.current.weather.main === 'Rain' && weatherData.current.weather.description.includes('heavy')) {
+                alerts.push('Heavy rain warning');
+            }
+
+            if (weatherData.current.weather.main === 'Snow') {
+                alerts.push('Snow warning');
+            }
+
+            setWeatherAlerts(alerts);
+
+            if (alerts.length > 0 && 'Notification' in window) {
+                if (Notification.permission === 'default') {
+                    Notification.requestPermission().then(permission => {
+                        if (permission === 'granted') {
+                            showNotifications(alerts);
+                        }
+                    });
+                } else if (Notification.permission === 'granted') {
+                    showNotifications(alerts);
+                }
+            }
+        } else {
+            setWeatherAlerts([]);
         }
-    }, [weatherData, fetchForecastData]);
+    }, [weatherData, settings.notifications]);
+
+    const showNotifications = (alerts: string[]) => {
+        alerts.forEach(alert => {
+            new Notification('Weather Alert', {
+                body: alert,
+                icon: '/weather-icon.png'
+            });
+        });
+    };
+
+    const fetchWeatherData = async (location: WeatherLocation) => {
+        setLoading(true);
+        setError(null);
+
+        try {
+            const [current, forecast] = await Promise.all([
+                getCurrentWeather(location.lat, location.lon),
+                getForecast(location.lat, location.lon),
+            ]);
+
+            const transformedData: WeatherData = {
+                current: {
+                    temp: current.main.temp,
+                    feels_like: current.main.feels_like,
+                    humidity: current.main.humidity,
+                    pressure: current.main.pressure,
+                    wind_speed: current.wind.speed,
+                    wind_deg: current.wind.deg,
+                    weather: {
+                        main: current.weather[0].main,
+                        description: current.weather[0].description,
+                        icon: current.weather[0].icon,
+                    },
+                    sunrise: current.sys.sunrise,
+                    sunset: current.sys.sunset,
+                    dt: current.dt,
+                },
+                hourly: forecast.list.slice(0, 24).map((item: any) => ({
+                    dt: item.dt,
+                    temp: item.main.temp,
+                    feels_like: item.main.feels_like,
+                    humidity: item.main.humidity,
+                    pressure: item.main.pressure,
+                    wind_speed: item.wind.speed,
+                    wind_deg: item.wind.deg,
+                    weather: {
+                        main: item.weather[0].main,
+                        description: item.weather[0].description,
+                        icon: item.weather[0].icon,
+                    },
+                    pop: item.pop,
+                })),
+                daily: forecast.list
+                    .filter((_: any, index: number) => index % 8 === 0)
+                    .slice(0, 7)
+                    .map((item: any) => ({
+                        dt: item.dt,
+                        temp: item.main.temp,
+                        feels_like: item.main.feels_like,
+                        humidity: item.main.humidity,
+                        pressure: item.main.pressure,
+                        wind_speed: item.wind.speed,
+                        wind_deg: item.wind.deg,
+                        weather: {
+                            main: item.weather[0].main,
+                            description: item.weather[0].description,
+                            icon: item.weather[0].icon,
+                        },
+                        pop: item.pop,
+                    })),
+                alerts: [],
+                timezone: forecast.city.timezone.toString(),
+                lat: location.lat,
+                lon: location.lon,
+            };
+
+            setWeatherData(transformedData);
+        } catch (err) {
+            console.error('Error fetching weather data:', err);
+            setError('Failed to fetch weather data. Please try again.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSearch = async (query: string) => {
+        setLoading(true);
+        setError(null);
+        try {
+            const results = await searchLocation(query);
+            if (results.length === 0) {
+                setError('No locations found. Please try a different search.');
+                return [];
+            }
+            return results.map((result: any) => ({
+                id: `${result.lat}-${result.lon}`,
+                name: result.name,
+                lat: result.lat,
+                lon: result.lon,
+                country: result.country,
+                state: result.state,
+            }));
+        } catch (err) {
+            console.error('Error searching location:', err);
+            setError('Failed to search location. Please try again.');
+            return [];
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const saveLocation = (location: WeatherLocation) => {
+        if (!savedLocations.some((loc) => loc.id === location.id)) {
+            setSavedLocations([...savedLocations, location]);
+        }
+    };
+
+    const removeLocation = (locationId: string) => {
+        setSavedLocations(savedLocations.filter((loc) => loc.id !== locationId));
+    };
+
+    const switchLocation = (location: WeatherLocation) => {
+        setCurrentLocation(location);
+    };
+
+    const toggleUnit = () => {
+        setSettings((prev) => ({
+            ...prev,
+            unit: prev.unit === 'metric' ? 'imperial' : 'metric',
+        }));
+    };
+
+    const toggleTheme = () => {
+        setSettings((prev) => ({
+            ...prev,
+            theme: prev.theme === 'light' ? 'dark' : 'light',
+        }));
+    };
+
+    const toggleNotifications = () => {
+        setSettings((prev) => ({
+            ...prev,
+            notifications: !prev.notifications,
+        }));
+    };
 
     return {
         currentLocation,
-        weatherData,
-        forecastData,
         savedLocations,
-        unit,
-        theme,
+        weatherData,
         loading,
         error,
-        showHourly,
+        settings,
+        weatherAlerts,
         handleSearch,
-        getCurrentLocation,
+        saveLocation,
+        removeLocation,
+        switchLocation,
         toggleUnit,
         toggleTheme,
-        toggleView,
-        removeLocation,
-        setError
+        toggleNotifications,
     };
 };
