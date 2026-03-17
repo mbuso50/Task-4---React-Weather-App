@@ -1,9 +1,12 @@
-
-import React from 'react';
+import React from "react";
 
 interface ForecastItem {
   dt: number;
   temp: number;
+  feels_like?: number;
+  humidity?: number;
+  wind_speed?: number;
+  pop?: number;
   weather: {
     main: string;
     description: string;
@@ -14,70 +17,132 @@ interface ForecastItem {
 interface ForecastProps {
   hourly: ForecastItem[];
   daily: ForecastItem[];
-  unit: 'metric' | 'imperial';
+  unit: "metric" | "imperial";
 }
 
 const Forecast: React.FC<ForecastProps> = ({ hourly, daily, unit }) => {
-  const temperatureUnit = unit === 'metric' ? '°C' : '°F';
+  const tempUnit = unit === "metric" ? "°C" : "°F";
+  const windUnit = unit === "metric" ? "m/s" : "mph";
 
-  const formatTime = (timestamp: number) => {
-    return new Date(timestamp * 1000).toLocaleTimeString([], {
-      hour: '2-digit',
-      minute: '2-digit',
+  const formatTime = (timestamp: number) =>
+    new Date(timestamp * 1000).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
     });
-  };
 
-  const formatDate = (timestamp: number) => {
-    return new Date(timestamp * 1000).toLocaleDateString([], {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
+  const formatDay = (timestamp: number) =>
+    new Date(timestamp * 1000).toLocaleDateString([], {
+      weekday: "long",
+      month: "short",
+      day: "numeric",
     });
-  };
 
-  // Don't render if both arrays are empty
-  if (hourly.length === 0 && daily.length === 0) {
-    return null;
-  }
+  const rainChance = (pop: number | undefined) =>
+    pop !== undefined ? `${Math.round(pop * 100)}%` : "—";
+
+  if (hourly.length === 0 && daily.length === 0) return null;
 
   return (
     <div className="forecast-container">
+      {/* ── Hourly Forecast ── */}
       {hourly.length > 0 && (
-        <div className="hourly-forecast card">
+        <div className="forecast-section card">
           <div className="card-header">
             <h3 className="card-title">Hourly Forecast</h3>
           </div>
           <div className="forecast-scroll">
             {hourly.slice(0, 24).map((item, index) => (
-              <div key={index} className="forecast-item">
-                <p>{formatTime(item.dt)}</p>
+              <div key={index} className="forecast-item hourly-item">
+                {/* Time */}
+                <p className="forecast-time">{formatTime(item.dt)}</p>
+
+                {/* Weather icon */}
                 <img
-                  src={`https://openweathermap.org/img/wn/${item.weather.icon}.png`}
+                  src={`https://openweathermap.org/img/wn/${item.weather.icon}@2x.png`}
                   alt={item.weather.description}
+                  className="forecast-icon"
                 />
-                <p>{Math.round(item.temp)}{temperatureUnit}</p>
+
+                {/* Temperature */}
+                <p className="forecast-temp">
+                  {Math.round(item.temp)}
+                  {tempUnit}
+                </p>
+
+                {/* Rain chance */}
+                <p className="forecast-rain" title="Chance of rain">
+                  {rainChance(item.pop)}
+                </p>
+
+                {/* Humidity */}
+                {item.humidity !== undefined && (
+                  <p className="forecast-humidity" title="Humidity">
+                    {item.humidity}%
+                  </p>
+                )}
               </div>
             ))}
           </div>
         </div>
       )}
 
+      {/* ── Daily Forecast ── */}
       {daily.length > 0 && (
-        <div className="daily-forecast card">
+        <div className="forecast-section card">
           <div className="card-header">
-            <h3 className="card-title">Daily Forecast</h3>
+            <h3 className="card-title">7-Day Forecast</h3>
           </div>
-          {daily.slice(0, 7).map((item, index) => (
-            <div key={index} className="forecast-item">
-              <p>{formatDate(item.dt)}</p>
-              <img
-                src={`https://openweathermap.org/img/wn/${item.weather.icon}.png`}
-                alt={item.weather.description}
-              />
-              <p>{Math.round(item.temp)}{temperatureUnit}</p>
-              <p>{item.weather.main}</p>
-            </div>
-          ))}
+          <div className="daily-list">
+            {daily.slice(0, 7).map((item, index) => (
+              <div key={index} className="forecast-item daily-item">
+                {/* Day label */}
+                <p className="forecast-day">
+                  {index === 0 ? "Today" : formatDay(item.dt)}
+                </p>
+
+                {/* Weather icon + description */}
+                <div className="forecast-weather-info">
+                  <img
+                    src={`https://openweathermap.org/img/wn/${item.weather.icon}@2x.png`}
+                    alt={item.weather.description}
+                    className="forecast-icon"
+                  />
+                  <span className="forecast-desc">{item.weather.main}</span>
+                </div>
+
+                {/* Temperature */}
+                <p className="forecast-temp">
+                  {Math.round(item.temp)}
+                  {tempUnit}
+                </p>
+
+                {/* Feels like */}
+                {item.feels_like !== undefined && (
+                  <p className="forecast-feels">
+                    Feels {Math.round(item.feels_like)}
+                    {tempUnit}
+                  </p>
+                )}
+
+                {/* Rain chance */}
+                <p className="forecast-rain" title="Chance of rain">
+                  {rainChance(item.pop)}
+                </p>
+
+                {/* Humidity */}
+                {item.humidity !== undefined && (
+                  <p className="forecast-humidity">{item.humidity}%</p>
+                )}
+
+                {/* Wind speed */}
+                {item.wind_speed !== undefined && (
+                  <p className="forecast-wind">
+                    {item.wind_speed} {windUnit}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
